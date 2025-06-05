@@ -12,6 +12,10 @@ redis_client = redis.from_url(redis_url, decode_responses=True)
 # JobSearchSystem örneği
 jss = JobSearchSystem()
 
+@app.get("/health")
+async def health():
+    return JSONResponse(content={"status": "ok"})
+
 @app.route("/add_jobs", methods=["POST"])
 def add_jobs():
     jobs = request.json

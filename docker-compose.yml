@@ -116,7 +116,8 @@ services:
       - "minio"
 
   jobsearch-api:
-    build: .
+    build:
+      context: ./api/JobAi
     container_name: jobsearch-api
     restart: unless-stopped
     ports:
