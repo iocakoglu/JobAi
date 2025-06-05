@@ -1,6 +1,8 @@
-flask==2.3.3
-redis==5.0.1
-sentence-transformers==2.2.2
-pymilvus==2.4.4
-tqdm==4.66.1
-huggingface_hub==0.10.1
+flask
+redis
+sentence-transformers
+pymilvus
+tqdm
+huggingface_hub
+marshmallow
+

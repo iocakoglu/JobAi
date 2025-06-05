@@ -7,10 +7,10 @@ import time
 import os
 
 
-class JobSearchSystem:
+class JobSeekerSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_posts"
+        self.collection_name = "job_seeker"
         self.embedding_dim = 384
         
         if auto_init:
@@ -75,7 +75,7 @@ class JobSearchSystem:
             FieldSchema(name="experience_level", dtype=DataType.INT64),
             FieldSchema(name="is_deleted", dtype=DataType.BOOL)
         ]
-        schema = CollectionSchema(fields, description="Job Postings Collection")
+        schema = CollectionSchema(fields, description="Job Seeker Collection")
         self.collection = Collection(self.collection_name, schema)
         print(f"Koleksiyon oluşturuldu: {self.collection_name}")
 
