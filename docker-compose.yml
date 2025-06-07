@@ -117,7 +117,7 @@ services:
 
   jobsearch-api:
     build:
-      context: .
+      context: ./api/JobAi
     container_name: jobsearch-api
     restart: unless-stopped
     ports:
@@ -126,7 +126,6 @@ services:
       REDIS_URL: "redis://:5iAruK60df4d@redis:6379"
       MILVUS_HOST: "standalone"
       MILVUS_PORT: "19530"
-      # Diğer env varsa ekleyebilirsin
     depends_on:
       - redis
       - standalone

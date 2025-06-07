@@ -1,4 +1,4 @@
-import json
+import json,math
 from sentence_transformers import SentenceTransformer
 from pymilvus import connections, CollectionSchema, FieldSchema, DataType, Collection, utility
 from typing import Dict, List, Any, Union
@@ -10,7 +10,7 @@ import os
 class JobSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_posts"
+        self.collection_name = "job_posts1"
         self.embedding_dim = 384
         
         if auto_init:
@@ -131,7 +131,12 @@ class JobSearchSystem:
                     "dates": {
                         "created": job.get("createdDate", ""),
                         "modified": job.get("modifiedDate", "")
-                    }
+                    },
+                    "latitude": job.get("latitude"),  
+                    "longitude": job.get("longitude"),   
+                    "images": job.get("images", []),
+                    "isVerifiedProfile": job.get("isVerifiedProfile", "false"),
+                    "cityName" : job.get("cityName")
                 }))
                 
                 sector_ids.append(job.get("sectorId", 0))
@@ -160,6 +165,7 @@ class JobSearchSystem:
         
         return False
 
+ 
     def search_jobs(self, candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         # Koleksiyonun yüklü olduğundan emin ol
         if not self._check_collection_loaded():
@@ -217,9 +223,19 @@ class JobSearchSystem:
     def _process_results(self, hits: List[Any], candidate: Dict[str, Any]) -> List[Dict[str, Any]]:
         processed = []
         
+        candidate_lat = candidate.get("latitude")
+        candidate_lon = candidate.get("longitude")
+
         for hit in hits:
             job = json.loads(hit.entity.get("job_data"))
             
+            job_lat = job.get("latitude")
+            job_lon = job.get("longitude")
+
+            if candidate_lat is not None and candidate_lon is not None and job_lat is not None and job_lon is not None:
+               radius = round(self._haversine_distance(candidate_lat, candidate_lon, job_lat, job_lon), 2)
+            else:
+                radius = 0
             milvus_score = round((hit.distance + 1) / 2 * 100, 1)
             final_score = self._calculate_score(job, milvus_score, candidate, hit.entity)
             
@@ -236,8 +252,14 @@ class JobSearchSystem:
                     "sector_id": hit.entity.get("sector_id"),
                     "location_id": hit.entity.get("location_id"),
                     "job_type": job.get("job_type"),
-                    "skills": job.get("skills")
-                }
+                    "skills": job.get("skills"),
+                },
+                "latitude": job.get("latitude"),
+                "longitude": job.get("longitude"),
+                "images": job.get("images", []),  
+                "radius": radius,
+                "isVerifiedProfile": job.get("isVerifiedProfile", False),
+                "cityName" : job.get("cityName")  
             })
         
         return sorted(processed, key=lambda x: x["score"], reverse=True)[:10]
@@ -283,6 +305,7 @@ class JobSearchSystem:
         self._load_collection_with_retry()
         return True
     
+ 
     @staticmethod
     def _experience_score(job_exp: int, candidate_exp: int) -> float:
             diff = abs(job_exp - candidate_exp)
@@ -295,6 +318,19 @@ class JobSearchSystem:
             return 100
         return 50 if expected < min_s else 0
 
+    @staticmethod
+    def _haversine_distance(lat1, lon1, lat2, lon2):
+        R = 6371
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        delta_phi = math.radians(lat2 - lat1)
+        delta_lambda = math.radians(lon2 - lon1)
+
+        a = math.sin(delta_phi / 2) ** 2 + \
+            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c
 
 # if __name__ == "__main__":
     # Sistem başlatma

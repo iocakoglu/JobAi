@@ -10,7 +10,7 @@ import os
 class JobSeekerSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_seeker"
+        self.collection_name = "job_seeker1"
         self.embedding_dim = 384
         
         if auto_init:
@@ -131,7 +131,12 @@ class JobSeekerSearchSystem:
                     "dates": {
                         "created": job.get("createdDate", ""),
                         "modified": job.get("modifiedDate", "")
-                    }
+                    },
+                    "latitude": job.get("latitude"),  
+                    "longitude": job.get("longitude"),   
+                    "images": job.get("images", []),
+                    "isVerifiedProfile": job.get("isVerifiedProfile", "false"),
+                    "cityName" : job.get("cityName")
                 }))
                 
                 sector_ids.append(job.get("sectorId", 0))
@@ -217,9 +222,20 @@ class JobSeekerSearchSystem:
     def _process_results(self, hits: List[Any], candidate: Dict[str, Any]) -> List[Dict[str, Any]]:
         processed = []
         
+        candidate_lat = candidate.get("latitude")
+        candidate_lon = candidate.get("longitude")
+       
         for hit in hits:
             job = json.loads(hit.entity.get("job_data"))
             
+            job_lat = job.get("latitude")
+            job_lon = job.get("longitude")
+            
+            if candidate_lat is not None and candidate_lon is not None and job_lat is not None and job_lon is not None:
+               radius = round(self._haversine_distance(candidate_lat, candidate_lon, job_lat, job_lon), 2)
+            else:
+                radius = 0
+                
             milvus_score = round((hit.distance + 1) / 2 * 100, 1)
             final_score = self._calculate_score(job, milvus_score, candidate, hit.entity)
             
@@ -237,7 +253,13 @@ class JobSeekerSearchSystem:
                     "location_id": hit.entity.get("location_id"),
                     "job_type": job.get("job_type"),
                     "skills": job.get("skills")
-                }
+                },
+                "latitude": job.get("latitude"),
+                "longitude": job.get("longitude"),
+                "images": job.get("images", []),  
+                "radius": radius,
+                "isVerifiedProfile": job.get("isVerifiedProfile", False),
+                "cityName" : job.get("cityName")  
             })
         
         return sorted(processed, key=lambda x: x["score"], reverse=True)[:10]
