@@ -136,7 +136,11 @@ class JobSeekerSearchSystem:
                     "longitude": job.get("longitude"),   
                     "images": job.get("images", []),
                     "isVerifiedProfile": job.get("isVerifiedProfile", "false"),
-                    "cityName" : job.get("cityName")
+                    "cityName" : job.get("cityName",""),
+                    "userId": job.get("userId", 0),
+                    "jobTitle": job.get("jobTitle", ""),
+                    "name": job.get("name", ""),
+                    "age": job.get("age", 0),
                 }))
                 
                 sector_ids.append(job.get("sectorId", 0))
@@ -259,7 +263,11 @@ class JobSeekerSearchSystem:
                 "images": job.get("images", []),  
                 "radius": radius,
                 "isVerifiedProfile": job.get("isVerifiedProfile", False),
-                "cityName" : job.get("cityName")  
+                "cityName" : job.get("cityName"),
+                "userId": job.get("userId", 0),
+                "jobTitle": job.get("jobTitle", ""),
+                "name": job.get("name", ""),
+                "age": job.get("age", 0),
             })
         
         return sorted(processed, key=lambda x: x["score"], reverse=True)[:10]
