@@ -115,6 +115,16 @@ services:
       - "etcd"
       - "minio"
 
+  attu:
+    image: zilliz/attu:v2.2.8
+    container_name: milvus-attu
+    restart: unless-stopped
+    environment:
+      MILVUS_URL: standalone:19530  # Milvus standalone servisine bağlanır
+    ports:
+      - "8282:3000"  # 8282 portunda erişilebilir
+    depends_on:
+      - standalone
   jobsearch-api:
     build:
       context: ./api/JobAi

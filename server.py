@@ -51,7 +51,15 @@ def search_jobs():
     
     return jsonify(results)
 
+@app.route("/createPostIndex", methods=["POST"])
+def createPostIndex():
+    jss.safe_reset_collection();
+    return jsonify({"success": "Ok"})
 
+@app.route("/createseekerIndex", methods=["POST"])
+def createseekerIndex():
+    jseeker.safe_reset_collection();
+    return jsonify({"success": "Ok"})
 
 @app.route("/add_seeker", methods=["POST"])
 def add_seeker():

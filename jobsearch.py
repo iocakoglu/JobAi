@@ -313,6 +313,51 @@ class JobSearchSystem:
         self._load_collection_with_retry()
         return True
     
+    def safe_reset_collection(self):
+        """Güvenli koleksiyon sıfırlama ve otomatik yeniden oluşturma"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"\n--- Sıfırlama denemesi {attempt + 1}/{max_retries} ---")
+                
+                # 1. Eski koleksiyonu kontrollü silme
+                if utility.has_collection(self.collection_name):
+                    print("Eski koleksiyon siliniyor...")
+                    utility.drop_collection(self.collection_name)
+                    time.sleep(5)  # Milvus'un iç temizliği için kritik bekleme
+                
+                # 2. Yeni koleksiyon oluşturma
+                print("Yeni koleksiyon oluşturuluyor...")
+                self._create_collection()
+                time.sleep(2)  # Şema stabilizasyonu için
+                
+                # 3. Index oluşturma
+                print("Indexler hazırlanıyor...")
+                self._create_index()
+                time.sleep(3)  # Indexleme için bekleme
+                
+                # 4. Yükleme ve sağlık kontrolü
+                print("Koleksiyon yükleniyor...")
+                self._load_collection_with_retry()
+                
+                # 5. Test verisiyle doğrulama
+                test_data = {
+                    "id": 999999,
+                    "skills": "TEST DATA",
+                    "sectorId": 0,
+                    "locationId": 0
+                }
+                self._insert_batch([test_data])
+                print("✔ Test verisi başarıyla eklendi")
+                
+                return True
+                
+            except Exception as e:
+                print(f"❌ Hata (Deneme {attempt + 1}): {str(e)}")
+                if attempt == max_retries - 1:
+                    print("⛔ Maksimum deneme sayısı aşıldı")
+                    raise
+                time.sleep(5 * (attempt + 1))  # Artan bekleme süresi
  
     @staticmethod
     def _experience_score(job_exp: int, candidate_exp: int) -> float:
