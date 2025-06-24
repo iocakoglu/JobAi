@@ -114,12 +114,12 @@ def search_seeker():
         return jsonify({"success": False, "message": "Arama için gerekli bilgiler eksik"}), 400
 
     results = jseeker.search_jobs(candidate_data)
-
+    print(results);
     # Her bir iş için detay bilgilerini al
     for job in results["results"]:
         job_id = job["job_id"]
         user_id = job.get("userId", 0)  # userId yoksa 0 kullan
-
+        
         try:
             # API isteği yap
             response = requests.get(
