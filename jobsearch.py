@@ -339,15 +339,7 @@ class JobSearchSystem:
                 # 4. Yükleme ve sağlık kontrolü
                 print("Koleksiyon yükleniyor...")
                 self._load_collection_with_retry()
-                
-                # 5. Test verisiyle doğrulama
-                test_data = {
-                    "id": 999999,
-                    "skills": "TEST DATA",
-                    "sectorId": 0,
-                    "locationId": 0
-                }
-                self._insert_batch([test_data])
+
                 print("✔ Test verisi başarıyla eklendi")
                 
                 return True

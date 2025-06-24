@@ -5,4 +5,4 @@ pymilvus
 tqdm
 huggingface_hub
 marshmallow
-
+requests

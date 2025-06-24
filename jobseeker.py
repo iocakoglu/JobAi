@@ -10,7 +10,7 @@ import os
 class JobSeekerSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_seeker1"
+        self.collection_name = "job_seeker2"
         self.embedding_dim = 384
         
         if auto_init:
@@ -339,17 +339,7 @@ class JobSeekerSearchSystem:
                 # 4. Yükleme ve sağlık kontrolü
                 print("Koleksiyon yükleniyor...")
                 self._load_collection_with_retry()
-                
-                # 5. Test verisiyle doğrulama
-                test_data = {
-                    "id": 999999,
-                    "skills": "TEST DATA",
-                    "sectorId": 0,
-                    "locationId": 0
-                }
-                self._insert_batch([test_data])
-                print("✔ Test verisi başarıyla eklendi")
-                
+
                 return True
                 
             except Exception as e:
