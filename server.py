@@ -123,7 +123,7 @@ def search_seeker():
         try:
             # API isteği yap
             response = requests.get(
-                f'https://api.swipingjobs.com/Redis/jobPost/{job_id}/{user_id}',
+                f'https://api.swipingjobs.com/Redis/seeker/{job_id}/{user_id}',
                 headers={'accept': 'text/plain'}
             )
 
