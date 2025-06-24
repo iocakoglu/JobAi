@@ -46,7 +46,7 @@ def search_jobs():
     if not candidate_data or "skills" not in candidate_data:
         return jsonify({"success": False, "message": "Arama için gerekli bilgiler eksik"}), 400
 
-    results = jseeker.search_jobs(candidate_data)
+    results = jss.search_jobs(candidate_data)
 
     # Her bir iş için detay bilgilerini al
     for job in results["results"]:
@@ -113,7 +113,7 @@ def search_seeker():
     if not candidate_data or "skills" not in candidate_data:
         return jsonify({"success": False, "message": "Arama için gerekli bilgiler eksik"}), 400
 
-    results = jss.search_jobs(candidate_data)
+    results = jseeker.search_jobs(candidate_data)
 
     # Her bir iş için detay bilgilerini al
     for job in results["results"]:
@@ -123,7 +123,7 @@ def search_seeker():
         try:
             # API isteği yap
             response = requests.get(
-                f'https://api.swipingjobs.com/Redis/seeker/{job_id}/{user_id}',
+                f'https://api.swipingjobs.com/Redis/jobPost/{job_id}/{user_id}',
                 headers={'accept': 'text/plain'}
             )
 
