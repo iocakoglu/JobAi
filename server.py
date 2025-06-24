@@ -46,7 +46,7 @@ def search_jobs():
     if not candidate_data or "skills" not in candidate_data:
         return jsonify({"success": False, "message": "Arama için gerekli bilgiler eksik"}), 400
 
-    results = jss.search_jobs(candidate_data)
+    results = jseeker.search_jobs(candidate_data)
 
     # Her bir iş için detay bilgilerini al
     for job in results["results"]:
