@@ -28,6 +28,7 @@ def add_jobs():
         return jsonify({"success": False, "message": "İş ilanları verisi yok"}), 400
     
     result = jss.add_jobs(jobs)
+    print("Add Jobs",jobs)
     return jsonify({"success": result})
 
 @app.route("/create_or_update_jobs", methods=["POST"])
@@ -47,7 +48,7 @@ def search_jobs():
         return jsonify({"success": False, "message": "Arama için gerekli bilgiler eksik"}), 400
 
     results = jss.search_jobs(candidate_data)
-
+    print("search_jobs",results)
     # Her bir iş için detay bilgilerini al
     for job in results["results"]:
         job_id = job["job_id"]
@@ -56,7 +57,7 @@ def search_jobs():
         try:
             # API isteği yap
             response = requests.get(
-                f'https://api.swipingjobs.com/Redis/jobPost/{job_id}/{user_id}',
+                f'https://api.swipingjobs.com/Redis/seeker/{job_id}/{user_id}',
                 headers={'accept': 'text/plain'}
             )
 
