@@ -10,7 +10,7 @@ import os
 class JobSeekerSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_seeker"
+        self.collection_name = "job_seeker2"
         self.embedding_dim = 384
         
         if auto_init:
@@ -244,10 +244,30 @@ class JobSeekerSearchSystem:
             final_score = self._calculate_score(job, milvus_score, candidate, hit.entity)
             
             processed.append({
-                "jobPostId": hit.id,
+                "job_id": hit.id,
                 "score": final_score,
                 "milvus_score": milvus_score,
                 "is_ignored": False,
+                "details": {
+                    "position": job.get("requirements", "").split(",")[0][:50],
+                    "language": job.get("language"),
+                    "experience": hit.entity.get("experience_level"),
+                    "salary_range": job.get("salary_range", [0, 0]),
+                    "sector_id": hit.entity.get("sector_id"),
+                    "location_id": hit.entity.get("location_id"),
+                    "job_type": job.get("job_type"),
+                    "skills": job.get("skills")
+                },
+                "latitude": job.get("latitude"),
+                "longitude": job.get("longitude"),
+                "images": job.get("images", []),  
+                "radius": radius,
+                "isVerifiedProfile": job.get("isVerifiedProfile", False),
+                "cityName" : job.get("cityName"),
+                "userId": job.get("userId", 0),
+                "jobTitle": job.get("jobTitle", ""),
+                "name": job.get("name", ""),
+                "age": job.get("age", 0),
             })
         
         return sorted(processed, key=lambda x: x["score"], reverse=True)[:10]
