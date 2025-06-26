@@ -49,36 +49,12 @@ def search_jobs():
 
     results = jss.search_jobs(candidate_data)
     print("search_jobs",results)
-    # Her bir iş için detay bilgilerini al
-    for job in results["results"]:
-        job_id = job["job_id"]
-        user_id = job.get("userId", 0)  # userId yoksa 0 kullan
-
-        try:
-            # API isteği yap
-            response = requests.get(
-                f'https://api.swipingjobs.com/Redis/seeker/{job_id}/{user_id}',
-                headers={'accept': 'text/plain'}
-            )
-
-            if response.status_code == 200:
-                response_data = response.json()
-                # Gelen cevabın body kısmını details olarak kaydet
-                if response_data.get("isSuccess", False) and "body" in response_data:
-                    job["details"] = response_data["body"]
-                else:
-                    job["details"] = {}  # Hata durumunda boş bir dict ekle
-            else:
-                job["details"] = {}
-        except Exception as e:
-            print(f"API isteği sırasında hata oluştu (job_id: {job_id}): {str(e)}")
-            job["details"] = {}  # Hata durumunda boş bir dict ekle
 
     # Redis'e kaydet
     redis_key = f"jobSeekerMatch:{results['id']}"
     redis_client.set(redis_key, json.dumps(results, ensure_ascii=False))
 
-    return jsonify(results)
+    return jsonify(redis_key)
 
 @app.route("/createPostIndex", methods=["POST"])
 def createPostIndex():
@@ -116,36 +92,12 @@ def search_seeker():
 
     results = jseeker.search_jobs(candidate_data)
     print("seeker",results);
-    # Her bir iş için detay bilgilerini al
-    for job in results["results"]:
-        job_id = job["job_id"]
-        user_id = job.get("userId", 0)  # userId yoksa 0 kullan
-        
-        try:
-            # API isteği yap
-            response = requests.get(
-                f'https://api.swipingjobs.com/Redis/jobPost/{job_id}/{user_id}',
-                headers={'accept': 'text/plain'}
-            )
-
-            if response.status_code == 200:
-                response_data = response.json()
-                # Gelen cevabın body kısmını details olarak kaydet
-                if response_data.get("isSuccess", False) and "body" in response_data:
-                    job["details"] = response_data["body"]
-                else:
-                    job["details"] = {}  # Hata durumunda boş bir dict ekle
-            else:
-                job["details"] = {}
-        except Exception as e:
-            print(f"API isteği sırasında hata oluştu (job_id: {job_id}): {str(e)}")
-            job["details"] = {}  # Hata durumunda boş bir dict ekle
 
     # Redis'e kaydet
     redis_key = f"jobPostMatch:{results['id']}"
     redis_client.set(redis_key, json.dumps(results, ensure_ascii=False))
 
-    return jsonify(results)
+    return jsonify(redis_key)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8181)
