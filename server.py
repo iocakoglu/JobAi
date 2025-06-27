@@ -246,8 +246,5 @@ def reset_job_seekers():
     jseeker.safe_reset_collection()
     return jsonify({"success": True})
 
-
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8181)

@@ -10,7 +10,7 @@ import os
 class JobSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_post"
+        self.collection_name = "job_post_new"
         self.embedding_dim = 384
 
         if auto_init:
@@ -119,7 +119,6 @@ class JobSearchSystem:
                     "longitude": job.get("longitude")
                 }))
 
-
                 is_deleted_flags.append(job.get("isDeleted", False))
 
             if ids:
@@ -150,7 +149,7 @@ class JobSearchSystem:
         query_vec = self.model.encode(skills).tolist()
         if isinstance(query_vec[0], list):
             query_vec = query_vec[0]  # İlk listeyi al
-        print("", query_vec)
+        print("",query_vec)
         # Ensure all vector elements are floats
         try:
             query_vec = [float(x) for x in query_vec]

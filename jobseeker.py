@@ -10,7 +10,7 @@ import os
 class JobSeekerSearchSystem:
     def __init__(self, auto_init: bool = True):
         self.model = SentenceTransformer("all-MiniLM-L12-v2")
-        self.collection_name = "job_seeker"
+        self.collection_name = "job_seeker_new"
         self.embedding_dim = 384
 
         if auto_init:
