@@ -116,7 +116,8 @@ class JobSearchSystem:
                     "skills": job["skills"],
                     "userId": job.get("userId"),
                     "latitude": job.get("latitude"),
-                    "longitude": job.get("longitude")
+                    "longitude": job.get("longitude"),
+                    "is_ignored" : False,
                 }))
 
                 is_deleted_flags.append(job.get("isDeleted", False))
@@ -195,6 +196,7 @@ class JobSearchSystem:
             job_lat = job.get("latitude")
             job_lon = job.get("longitude")
             userId = job.get("userId")
+            ignored = job.get("is_ignored")
 
             if candidate_lat and candidate_lon and job_lat and job_lon:
                 radius = round(self._haversine_distance(candidate_lat, candidate_lon, job_lat, job_lon), 2)
@@ -207,7 +209,7 @@ class JobSearchSystem:
                 "job_id": hit.id,
                 "score": milvus_score,
                 "milvus_score": milvus_score,
-                "is_ignored": False,
+                "is_ignored": ignored,
                 "radius": radius,
                 "userId": userId,
             })

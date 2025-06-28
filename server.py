@@ -66,7 +66,8 @@ def get_job_seeker_matches(seeker_id):
         "skills": seeker.get("skills", []),
         "latitude": seeker.get("latitude"),
         "longitude": seeker.get("longitude"),
-        "id": seeker_id  # Job seeker ID'sini de geçiyoruz
+        "id": seeker_id,  # Job seeker ID'sini de geçiyoruz
+        "is_ignored": seeker.get("is_ignored")
     })
 
     print("Raw Search Results:", search_results)
@@ -97,44 +98,85 @@ def get_job_seeker_matches(seeker_id):
     })
 
 
-@app.route("/matches/job_posts/<int:job_post_id>/ignore/<int:seeker_id>", methods=["POST"])
-def ignore_specific_match(job_post_id, seeker_id):
+# Diğer endpoint'ler
+
+@app.route("/ignore/job_seeker/<int:seeker_id>", methods=["POST"])
+def ignore_specific(seeker_id):
     try:
-        # 1. İlgili job_post'u bul
-        job_post = jss.get_job_by_id(job_post_id)
-        if not job_post:
-            return jsonify({"success": False, "message": "Job post not found"}), 404
-
-        # 2. İlgili job_seeker'ı bul
-        seeker = jseeker.get_seeker_by_id(seeker_id)
-        if not seeker:
-            return jsonify({"success": False, "message": "Job seeker not found"}), 404
-
-        # 3. Job seeker'ın is_ignored durumunu güncelle
-        result = jseeker.collection.query(
+        # 1. İş arayanı bul
+        res = jseeker.collection.query(
             expr=f"id == {seeker_id}",
-            output_fields=["embedding", "job_data", "is_deleted"]
+            output_fields=["id", "embedding", "job_data", "is_deleted"]
         )
 
-        if not result:
-            return jsonify({"success": False, "message": "Job seeker data not found"}), 404
+        if not res:
+            return jsonify({"success": False, "message": "Job seeker not found"}), 404
 
-        current_data = result[0]
-        job_data = json.loads(current_data["job_data"])
-        job_data["is_ignored"] = True  # Ignore durumunu True yap
+        data = res[0]
 
-        # 4. Güncellenmiş veriyi kaydet (delete + insert ile)
-        jseeker.collection.delete(f"id == {seeker_id}")
+        # 2. job_data'yı parse et
+        job_data_raw = data["job_data"]
+        job_data = json.loads(job_data_raw) if isinstance(job_data_raw, str) else job_data_raw
+
+        # 3. is_ignored'ı True yap
+        job_data["is_ignored"] = True
+
+        # 4. Eski veriyi sil
+        jseeker.collection.delete(expr=f"id in [{seeker_id}]")
+
+        # 5. Yeni veriyi insert et
         jseeker.collection.insert([
-            [seeker_id],
-            [current_data["embedding"]],
+            [data["id"]],
+            [data["embedding"]],
             [json.dumps(job_data)],
-            [current_data["is_deleted"]]
+            [data.get("is_deleted", False)]
         ])
 
-        # 5. Güncellenmiş eşleşmeleri döndür
-        updated_matches = get_job_post_matches(job_post_id)
-        return updated_matches
+        jseeker.collection.flush()
+
+        return jsonify({"success": True, "message": "Job seeker marked as ignored"})
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error ignoring match: {str(e)}"
+        }), 500
+
+@app.route("/ignore/job_posts/<int:job_post_id>", methods=["POST"])
+def ignore_specific_match(job_post_id):
+    try:
+        # 1. İş arayanı bul
+        res = jss.collection.query(
+            expr=f"id == {job_post_id}",
+            output_fields=["id", "embedding", "job_data", "is_deleted"]
+        )
+
+        if not res:
+            return jsonify({"success": False, "message": "Job seeker not found"}), 404
+
+        data = res[0]
+
+        # 2. job_data'yı parse et
+        job_data_raw = data["job_data"]
+        job_data = json.loads(job_data_raw) if isinstance(job_data_raw, str) else job_data_raw
+
+        # 3. is_ignored'ı True yap
+        job_data["is_ignored"] = True
+
+        # 4. Eski veriyi sil
+        jss.collection.delete(expr=f"id in [{job_post_id}]")
+
+        # 5. Yeni veriyi insert et
+        jss.collection.insert([
+            [data["id"]],
+            [data["embedding"]],
+            [json.dumps(job_data)],
+            [data.get("is_deleted", False)]
+        ])
+
+        jss.collection.flush()
+
+        return jsonify({"success": True, "message": "Job seeker marked as ignored"})
 
     except Exception as e:
         return jsonify({
@@ -143,78 +185,7 @@ def ignore_specific_match(job_post_id, seeker_id):
         }), 500
 
 
-@app.route("/job_seekers/<int:seeker_id>/ignore_job/<int:job_id>", methods=["POST"])
-def ignore_job_for_seeker(seeker_id, job_id):
-    try:
-        # Job post'un ignore durumunu güncelle
-        result = jss.collection.query(
-            expr=f"id == {job_id}",
-            output_fields=["embedding", "job_data", "is_deleted"]
-        )
 
-        if not result:
-            return jsonify({"success": False, "message": "Job post not found"}), 404
-
-        current_data = result[0]
-        job_data = json.loads(current_data["job_data"])
-        job_data["is_ignored"] = True
-
-        # Güncelleme işlemi
-        jss.collection.delete(f"id == {job_id}")
-        jss.collection.insert([
-            [job_id],
-            [current_data["embedding"]],
-            [json.dumps(job_data)],
-            [current_data["is_deleted"]]
-        ])
-
-        # Güncellenmiş eşleşmeleri döndür
-        updated_matches = get_job_seeker_matches(seeker_id)
-        return updated_matches
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": f"Error ignoring job: {str(e)}"
-        }), 500
-
-
-@app.route("/job_posts/<int:job_id>/ignore_seeker/<int:seeker_id>", methods=["POST"])
-def ignore_seeker_for_job(job_id, seeker_id):
-    try:
-        # Job seeker'ın ignore durumunu güncelle
-        result = jseeker.collection.query(
-            expr=f"id == {seeker_id}",
-            output_fields=["embedding", "job_data", "is_deleted"]
-        )
-
-        if not result:
-            return jsonify({"success": False, "message": "Job seeker not found"}), 404
-
-        current_data = result[0]
-        job_data = json.loads(current_data["job_data"])
-        job_data["is_ignored"] = True
-
-        # Güncelleme işlemi
-        jseeker.collection.delete(f"id == {seeker_id}")
-        jseeker.collection.insert([
-            [seeker_id],
-            [current_data["embedding"]],
-            [json.dumps(job_data)],
-            [current_data["is_deleted"]]
-        ])
-
-        # Güncellenmiş eşleşmeleri döndür
-        updated_matches = get_job_post_matches(job_id)
-        return updated_matches
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": f"Error ignoring seeker: {str(e)}"
-        }), 500
-
-# Diğer endpoint'ler
 @app.route("/health")
 def health():
     return jsonify({"status": "healthy"})

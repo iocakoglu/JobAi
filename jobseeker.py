@@ -116,7 +116,8 @@ class JobSeekerSearchSystem:
                     "skills": job["skills"],
                     "userId": job.get("userId"),
                     "latitude": job.get("latitude"),
-                    "longitude": job.get("longitude")
+                    "longitude": job.get("longitude"),
+                    "is_ignored": False,
                 }))
 
                 is_deleted_flags.append(job.get("isDeleted", False))
@@ -194,6 +195,7 @@ class JobSeekerSearchSystem:
 
             job_lat = job.get("latitude")
             job_lon = job.get("longitude")
+            ignored = job.get("is_ignored")
             userId = job.get("userId")
 
             if candidate_lat and candidate_lon and job_lat and job_lon:
@@ -207,7 +209,7 @@ class JobSeekerSearchSystem:
                 "job_id": hit.id,
                 "score": milvus_score,
                 "milvus_score": milvus_score,
-                "is_ignored": False,
+                "is_ignored": ignored,
                 "radius": radius,
                 "userId": userId,
             })

@@ -127,7 +127,7 @@ services:
       - standalone
   jobsearch-api:
     build:
-      context: ./api/JobAi
+      context: ./
     container_name: jobsearch-api
     restart: unless-stopped
     ports:
