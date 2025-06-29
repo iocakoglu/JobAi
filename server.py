@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+
+from IgnoreRelationSystem import IgnoreRelationSystemRedisOptimized
 from jobsearch import JobSearchSystem
 from jobseeker import JobSeekerSearchSystem
 import time
@@ -8,19 +10,20 @@ app = Flask(__name__)
 # Sistem örnekleri
 jss = JobSearchSystem()
 jseeker = JobSeekerSearchSystem()
+ignore_system = IgnoreRelationSystemRedisOptimized()
+
 
 
 # Güncellenmiş Eşleşme Endpoint'leri
 @app.route("/matches/job_posts/<int:job_post_id>", methods=["GET"])
 def get_job_post_matches(job_post_id):
-    # 1. İş ilanını veritabanından al
     job_post = jss.get_job_by_id(job_post_id)
     if not job_post:
         return jsonify({"error": "JobPost not found"}), 404
 
-    print("Job Post Details:", job_post)
+    # Sadece job_post'un ignore ettiği seekerları al
+    ignored_seekers_for_job = set(ignore_system.get_ignored_seekers_for_job(job_post_id))
 
-    # 2. Aday araması yap
     search_results = jseeker.search_jobs({
         "skills": job_post.get("skills", []),
         "latitude": job_post.get("latitude"),
@@ -28,33 +31,30 @@ def get_job_post_matches(job_post_id):
         "id": job_post_id
     })
 
-    print("Raw Search Results:", search_results)
-
-    # 3. Eşleşmeleri işle
     matches = []
     for match in search_results.get("results", []):
-        # Orijinal yapıyı koruyarak eşleşme verisini oluştur
-        match_data = {
-            "job_seeker_id": match["job_id"],
+        seeker_id = match["job_id"]  # Burada job_id seeker_id
+
+        # Eğer job_post bu seeker'ı ignore etmişse atla
+        if seeker_id in ignored_seekers_for_job:
+            continue
+
+        matches.append({
+            "job_seeker_id": seeker_id,
             "score": match["score"],
             "milvus_score": match.get("milvus_score", 0),
             "radius_km": match.get("radius", 0),
             "userId": match.get("userId"),
             "is_ignored": match.get("is_ignored")
-        }
-        matches.append(match_data)
+        })
 
-        # Eşleşmeyi veritabanına kaydet (orijinal parametrelerle)
-
-
-    # 4. Sonuçları skora göre sırala
     sorted_matches = sorted(matches, key=lambda x: x["score"], reverse=True)
 
-    # 5. Orijinal çıktı formatını koruyarak sonucu döndür
     return jsonify({
         "job_post_id": job_post_id,
         "matches": sorted_matches
     })
+
 
 @app.route("/matches/job_seekers/<int:seeker_id>", methods=["GET"])
 def get_job_seeker_matches(seeker_id):
@@ -62,45 +62,46 @@ def get_job_seeker_matches(seeker_id):
     if not seeker:
         return jsonify({"error": "JobSeeker not found"}), 404
 
+    # Sadece seeker'ın ignore ettiği jobları al
+    ignored_jobs_for_seeker = set(ignore_system.get_ignored_jobs_for_seeker(seeker_id))
+
     search_results = jss.search_jobs({
         "skills": seeker.get("skills", []),
         "latitude": seeker.get("latitude"),
         "longitude": seeker.get("longitude"),
-        "id": seeker_id,  # Job seeker ID'sini de geçiyoruz
+        "id": seeker_id,
         "is_ignored": seeker.get("is_ignored")
     })
 
-    print("Raw Search Results:", search_results)
-
-    # 3. Eşleşmeleri işle
     matches = []
     for match in search_results.get("results", []):
-        # Orijinal yapıyı koruyarak eşleşme verisini oluştur
-        match_data = {
-            "job_post_id": match["job_id"],
+        job_id = match["job_id"]
+
+        # Eğer seeker bu job'u ignore etmişse atla
+        if job_id in ignored_jobs_for_seeker:
+            continue
+
+        matches.append({
+            "job_post_id": job_id,
             "score": match["score"],
             "milvus_score": match.get("milvus_score", 0),
             "radius_km": match.get("radius", 0),
             "userId": match.get("userId"),
             "is_ignored": match.get("is_ignored")
-        }
-        matches.append(match_data)
+        })
 
-        # Eşleşmeyi veritabanına kaydet (orijinal parametrelerle)
-
-    # 4. Sonuçları skora göre sırala
     sorted_matches = sorted(matches, key=lambda x: x["score"], reverse=True)
 
-    # 5. Orijinal çıktı formatını koruyarak sonucu döndür
     return jsonify({
         "job_seeker_id": seeker_id,
         "matches": sorted_matches
     })
 
 
+
 # Diğer endpoint'ler
 
-@app.route("/ignore/job_seeker/<int:seeker_id>", methods=["POST"])
+@app.route("/delete/job_seeker/<int:seeker_id>", methods=["POST"])
 def ignore_specific(seeker_id):
     try:
         # 1. İş arayanı bul
@@ -142,7 +143,7 @@ def ignore_specific(seeker_id):
             "message": f"Error ignoring match: {str(e)}"
         }), 500
 
-@app.route("/ignore/job_posts/<int:job_post_id>", methods=["POST"])
+@app.route("/delete/job_posts/<int:job_post_id>", methods=["POST"])
 def ignore_specific_match(job_post_id):
     try:
         # 1. İş arayanı bul
@@ -183,6 +184,37 @@ def ignore_specific_match(job_post_id):
             "success": False,
             "message": f"Error ignoring match: {str(e)}"
         }), 500
+
+@app.route('/ignore', methods=['POST'])
+def add_ignore():
+    data = request.json
+    seeker_id = data.get('seeker_id')
+    job_id = data.get('job_id')
+    is_seeker_initiated = data.get('is_seeker_initiated', True)
+
+    if seeker_id is None or job_id is None:
+        return jsonify({"error": "seeker_id and job_id are required"}), 400
+
+    try:
+        seeker_id = int(seeker_id)
+        job_id = int(job_id)
+    except ValueError:
+        return jsonify({"error": "seeker_id and job_id must be integers"}), 400
+
+    updated = ignore_system.add_ignore_relation(seeker_id, job_id, is_seeker_initiated)
+    return jsonify({"success": updated})
+
+
+@app.route('/seeker/<int:seeker_id>/ignored-jobs', methods=['GET'])
+def get_jobs_for_seeker(seeker_id):
+    jobs = ignore_system.get_ignored_jobs_for_seeker(seeker_id)
+    return jsonify({"seeker_id": seeker_id, "ignored_jobs": jobs})
+
+
+@app.route('/job/<int:job_id>/ignored-seekers', methods=['GET'])
+def get_seekers_for_job(job_id):
+    seekers = ignore_system.get_ignored_seekers_for_job(job_id)
+    return jsonify({"job_id": job_id, "ignored_seekers": seekers})
 
 
 
