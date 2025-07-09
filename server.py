@@ -130,7 +130,7 @@ def ignore_specific(seeker_id):
             [data["id"]],
             [data["embedding"]],
             [json.dumps(job_data)],
-            [data.get("is_deleted", False)]
+            [data.get("is_deleted", True)]
         ])
 
         jseeker.collection.flush()
@@ -172,7 +172,7 @@ def ignore_specific_match(job_post_id):
             [data["id"]],
             [data["embedding"]],
             [json.dumps(job_data)],
-            [data.get("is_deleted", False)]
+            [data.get("is_deleted", True)]
         ])
 
         jss.collection.flush()
