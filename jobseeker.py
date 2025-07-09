@@ -5,7 +5,7 @@ from typing import Dict, List, Any, Union
 from tqdm import tqdm
 import time
 import os
-
+import numpy as np
 
 class JobSeekerSearchSystem:
     def __init__(self, auto_init: bool = True):
@@ -137,39 +137,31 @@ class JobSeekerSearchSystem:
         if not self._check_collection_loaded():
             self._load_collection_with_retry()
 
-        # Ensure skills is a list of strings
-        skills = candidate_data["skills"]
-        print(f"Skills: {skills}")
-        if not isinstance(skills, list) or not all(isinstance(s, str) for s in skills):
-            return {
-                "id": candidate_data.get("id"),
-                "results": [],
-                "error": "Skills must be a list of strings"
-            }
+        # 1. Standardize skills (sorted, lowercase, no whitespace)
+        skills = sorted([str(s).strip().lower() for s in candidate_data["skills"]])
+        print(f"Standardized skills: {skills}")
 
-        query_vec = self.model.encode(skills).tolist()
-        if isinstance(query_vec[0], list):
-            query_vec = query_vec[0]  # İlk listeyi al
-        print("",query_vec)
-        # Ensure all vector elements are floats
-        try:
-            query_vec = [float(x) for x in query_vec]
-        except (ValueError, TypeError) as e:
-            return {
-                "id": candidate_data.get("id"),
-                "results": [],
-                "error": f"Vector conversion error: {str(e)}"
-            }
+        # 2. Generate & normalize embedding
+        skill_text = " ".join(skills)
+        query_vec = self.model.encode(skill_text)
 
+        # Normalize the vector (critical for IP/COSINE similarity)
+        if np.linalg.norm(query_vec) > 0:  # Avoid division by zero
+            query_vec = query_vec / np.linalg.norm(query_vec)
+        query_vec = query_vec.tolist()
+
+        print(f"Normalized query vector (first 5): {query_vec[:5]}")
+
+        # 3. Search parameters
         search_params = {
-            "data": [query_vec],  # Note the list of list format
+            "data": [query_vec],
             "anns_field": "embedding",
             "param": {"metric_type": "IP", "params": {"nprobe": 16}},
-            "limit": 10,
+            "limit": 250,
             "expr": "is_deleted == false",
             "output_fields": ["job_data", "id"]
         }
-        print(f"Search results: {candidate_data}")
+
         try:
             results = self.collection.search(**search_params)
             return {

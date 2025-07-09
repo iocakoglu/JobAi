@@ -6,3 +6,4 @@ tqdm
 huggingface_hub
 marshmallow
 requests
+numpy
