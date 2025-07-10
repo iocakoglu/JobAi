@@ -146,7 +146,7 @@ networks:
 
 volumes:
   mongo_data:
-  mssql_data:
+  myapp_mssql_data:
   redis_data:
   rabbitmq_data:
   seq_data:
