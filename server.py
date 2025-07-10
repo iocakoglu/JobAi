@@ -106,7 +106,7 @@ def ignore_specific(seeker_id):
     try:
         # 1. İş ilanını bul
         res = jseeker.collection.query(
-            expr=f"id == '{seeker_id}'",  # String ID'ler için tırnak kullanıyoruz
+            expr=f"id == {seeker_id}",  # String ID'ler için tırnak kullanıyoruz
             output_fields=["id", "job_data"]
         )
 
@@ -152,7 +152,7 @@ def ignore_specific_match(job_post_id):
     try:
         # 1. İş ilanını bul
         res = jss.collection.query(
-            expr=f"id == '{job_post_id}'",  # String ID'ler için tırnak kullanıyoruz
+            expr=f"id == {job_post_id}",  # String ID'ler için tırnak kullanıyoruz
             output_fields=["id", "job_data"]
         )
 
