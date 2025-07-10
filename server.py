@@ -105,7 +105,7 @@ def get_job_seeker_matches(seeker_id):
 def ignore_specific(seeker_id):
     try:
         # 1. İş ilanını bul
-        res = jss.collection.query(
+        res = jseeker.collection.query(
             expr=f"id == '{seeker_id}'",  # String ID'ler için tırnak kullanıyoruz
             output_fields=["id", "job_data"]
         )
