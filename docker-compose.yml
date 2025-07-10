@@ -24,7 +24,7 @@ services:
     ports:
       - "1433:1433"
     volumes:
-      - mssql_data:/var/opt/mssql
+      - myapp_mssql_data:/var/opt/mssql
 
   redis:
     image: redis:7
