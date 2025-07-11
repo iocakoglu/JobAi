@@ -102,96 +102,62 @@ def get_job_seeker_matches(seeker_id):
 # Diğer endpoint'ler
 
 @app.route("/delete/job_seeker/<int:seeker_id>", methods=["POST"])
-def ignore_specific(seeker_id):
+def delete_job_seeker(seeker_id):
     try:
-        # 1. İş ilanını bul
         res = jseeker.collection.query(
-            expr=f"id == {seeker_id}",  # String ID'ler için tırnak kullanıyoruz
-            output_fields=["id", "job_data"]
+            expr=f"id == {seeker_id}",
+            output_fields=["id"]
         )
 
         if not res:
-            return jsonify({"success": False, "message": "Job post not found"}), 404
+            return jsonify({"success": False, "message": "Job seeker not found"}), 404
 
-        data = res[0]
-
-        # 2. job_data'yı parse et
-        job_data = {}
-        if "job_data" in data and data["job_data"]:
-            job_data_raw = data["job_data"]
-            job_data = json.loads(job_data_raw) if isinstance(job_data_raw, str) else job_data_raw
-
-        # 3. is_ignored'ı True yap
-        job_data["is_ignored"] = True
-
-        # 4. Sadece job_data'yı güncelle (diğer alanlar aynı kalacak)
-        jss.collection.upsert([
-            [data["id"]],                   # ID
-            None,                           # embedding (değişmiyor)
-            [json.dumps(job_data)],         # güncellenmiş job_data
-            None                            # is_deleted (değişmiyor)
-        ])
-
-        jss.collection.flush()
+        seeker_id_to_delete = res[0]["id"]
+        jseeker.collection.delete([seeker_id_to_delete])
+        jseeker.collection.flush()
 
         return jsonify({
             "success": True,
-            "message": "Job post marked as ignored",
-            "job_post_id": seeker_id
+            "message": "Job seeker deleted",
+            "seeker_id": seeker_id
         })
 
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"Error updating job post: {str(e)}",
-            "job_post_id": seeker_id
+            "message": f"Error deleting job seeker: {str(e)}",
+            "seeker_id": seeker_id
         }), 500
+
 
 @app.route("/delete/job_posts/<int:job_post_id>", methods=["POST"])
-def ignore_specific_match(job_post_id):
+def delete_job_post(job_post_id):
     try:
-        # 1. İş ilanını bul
         res = jss.collection.query(
-            expr=f"id == {job_post_id}",  # String ID'ler için tırnak kullanıyoruz
-            output_fields=["id", "job_data"]
+            expr=f"id == {job_post_id}",
+            output_fields=["id"]
         )
 
         if not res:
             return jsonify({"success": False, "message": "Job post not found"}), 404
 
-        data = res[0]
-
-        # 2. job_data'yı parse et
-        job_data = {}
-        if "job_data" in data and data["job_data"]:
-            job_data_raw = data["job_data"]
-            job_data = json.loads(job_data_raw) if isinstance(job_data_raw, str) else job_data_raw
-
-        # 3. is_ignored'ı True yap
-        job_data["is_ignored"] = True
-
-        # 4. Sadece job_data'yı güncelle (diğer alanlar aynı kalacak)
-        jss.collection.upsert([
-            [data["id"]],                   # ID
-            None,                           # embedding (değişmiyor)
-            [json.dumps(job_data)],         # güncellenmiş job_data
-            None                            # is_deleted (değişmiyor)
-        ])
-
+        job_post_id_to_delete = res[0]["id"]
+        jss.collection.delete([job_post_id_to_delete])
         jss.collection.flush()
 
         return jsonify({
             "success": True,
-            "message": "Job post marked as ignored",
+            "message": "Job post deleted",
             "job_post_id": job_post_id
         })
 
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"Error updating job post: {str(e)}",
+            "message": f"Error deleting job post: {str(e)}",
             "job_post_id": job_post_id
         }), 500
+
 
 @app.route('/ignore', methods=['POST'])
 def add_ignore():
