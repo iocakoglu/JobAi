@@ -105,7 +105,7 @@ def get_job_seeker_matches(seeker_id):
 def delete_job_seeker(seeker_id):
     try:
         res = jseeker.collection.query(
-            expr=f"id == {seeker_id}",
+            filter=f"id == {seeker_id}",
             output_fields=["id"]
         )
 
@@ -134,7 +134,7 @@ def delete_job_seeker(seeker_id):
 def delete_job_post(job_post_id):
     try:
         res = jss.collection.query(
-            expr=f"id == {job_post_id}",
+            filter=f"id == {job_post_id}",
             output_fields=["id"]
         )
 
