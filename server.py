@@ -104,16 +104,18 @@ def get_job_seeker_matches(seeker_id):
 @app.route("/delete/job_seeker/<int:seeker_id>", methods=["POST"])
 def delete_job_seeker(seeker_id):
     try:
+        # Query to verify the job seeker exists
         res = jseeker.collection.query(
-            filter=f"id == {seeker_id}",
+            expr=f"id == {seeker_id}",
             output_fields=["id"]
         )
 
         if not res:
             return jsonify({"success": False, "message": "Job seeker not found"}), 404
 
-        seeker_id_to_delete = res[0]["id"]
-        jseeker.collection.delete([seeker_id_to_delete])
+        # Delete using the proper filter expression format
+        delete_expr = f"id in [{seeker_id}]"
+        jseeker.collection.delete(expr=delete_expr)
         jseeker.collection.flush()
 
         return jsonify({
@@ -133,29 +135,31 @@ def delete_job_seeker(seeker_id):
 @app.route("/delete/job_posts/<int:job_post_id>", methods=["POST"])
 def delete_job_post(job_post_id):
     try:
+        # Query to verify the job seeker exists
         res = jss.collection.query(
-            filter=f"id == {job_post_id}",
+            expr=f"id == {job_post_id}",
             output_fields=["id"]
         )
 
         if not res:
-            return jsonify({"success": False, "message": "Job post not found"}), 404
+            return jsonify({"success": False, "message": "Job seeker not found"}), 404
 
-        job_post_id_to_delete = res[0]["id"]
-        jss.collection.delete([job_post_id_to_delete])
+        # Delete using the proper filter expression format
+        delete_expr = f"id in [{job_post_id}]"
+        jss.collection.delete(expr=delete_expr)
         jss.collection.flush()
 
         return jsonify({
             "success": True,
-            "message": "Job post deleted",
-            "job_post_id": job_post_id
+            "message": "Job seeker deleted",
+            "seeker_id": job_post_id
         })
 
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"Error deleting job post: {str(e)}",
-            "job_post_id": job_post_id
+            "message": f"Error deleting job seeker: {str(e)}",
+            "seeker_id": job_post_id
         }), 500
 
 
